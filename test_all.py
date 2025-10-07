@@ -57,7 +57,7 @@ async def test_github_api():
     try:
         import requests
         
-        username = os.getenv('GITHUB_USERNAME', '')
+        username = os.getenv('GH_USERNAME', '')
         if not username:
             # 尝试从配置文件读取
             try:

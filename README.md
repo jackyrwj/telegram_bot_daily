@@ -46,7 +46,7 @@ python get_chat_id.py
    - `BOT_TOKEN`: 你的 Telegram Bot Token
    - `CHAT_ID`: 目标群组或频道的 Chat ID
    - `GITHUB_TOKEN`: 你的 GitHub Personal Access Token (可选，用于获取活动数据)
-   - `GITHUB_USERNAME`: 你的 GitHub 用户名
+   - `GH_USERNAME`: 你的 GitHub 用户名
 
 ### 4. 自定义推送时间
 

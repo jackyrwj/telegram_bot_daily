@@ -11,7 +11,7 @@ from telegram.constants import ParseMode
 BOT_TOKEN = os.getenv('BOT_TOKEN', "8226079704:AAHuBWHZphave2xwU_A6ELI3M3IsZOfwZQ4")
 CHAT_ID = os.getenv('CHAT_ID', "-1002587693096")
 GITHUB_TOKEN = os.getenv('GITHUB_TOKEN', '')
-GITHUB_USERNAME = os.getenv('GITHUB_USERNAME', '')
+GH_USERNAME = os.getenv('GH_USERNAME', '')
 
 class DailyReportGenerator:
     def __init__(self):
@@ -37,7 +37,7 @@ class DailyReportGenerator:
                     "yearly_goal": 1000
                 },
                 "github": {
-                    "username": GITHUB_USERNAME
+                    "username": GH_USERNAME
                 },
                 "wake_time": {
                     "target": "06:00",
@@ -65,7 +65,7 @@ class DailyReportGenerator:
     
     async def get_github_activity(self):
         """获取 GitHub 活动信息"""
-        username = GITHUB_USERNAME or self.config.get('github', {}).get('username', '')
+        username = GH_USERNAME or self.config.get('github', {}).get('username', '')
         
         if not username:
             return {"prs": [], "issues": [], "commits": [], "stars": 0}

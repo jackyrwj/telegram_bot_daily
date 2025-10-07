@@ -11,7 +11,7 @@ import json
 BOT_TOKEN = os.getenv('BOT_TOKEN', "8226079704:AAHuBWHZphave2xwU_A6ELI3M3IsZOfwZQ4")
 CHAT_ID = os.getenv('CHAT_ID', "-1002587693096")
 GITHUB_TOKEN = os.getenv('GITHUB_TOKEN', '')  # 可选：用于访问 GitHub API
-GITHUB_USERNAME = os.getenv('GITHUB_USERNAME', '')  # 你的 GitHub 用户名
+GH_USERNAME = os.getenv('GH_USERNAME', '')  # 你的 GitHub 用户名
 
 class DailyReportGenerator:
     def __init__(self):
@@ -41,7 +41,7 @@ class DailyReportGenerator:
     
     async def get_github_activity(self):
         """获取 GitHub 活动信息"""
-        if not GITHUB_USERNAME:
+        if not GH_USERNAME:
             return {"prs": [], "issues": [], "commits": []}
             
         try:
@@ -50,7 +50,7 @@ class DailyReportGenerator:
                 headers['Authorization'] = f'token {GITHUB_TOKEN}'
             
             # 获取最近的事件
-            events_url = f"https://api.github.com/users/{GITHUB_USERNAME}/events"
+            events_url = f"https://api.github.com/users/{GH_USERNAME}/events"
             response = requests.get(events_url, headers=headers, timeout=10)
             
             if response.status_code != 200:

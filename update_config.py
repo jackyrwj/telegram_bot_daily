@@ -95,6 +95,45 @@ def update_github_username():
         config['github']['username'] = new_username
         save_config(config)
 
+def update_wake_time():
+    """更新起床时间"""
+    config = load_config()
+    
+    print("😴 更新起床时间设置")
+    print("=" * 30)
+    
+    # 显示当前设置
+    wake_config = config.get('wake_time', {})
+    current_target = wake_config.get('target', '06:00')
+    current_actual = wake_config.get('actual', '06:00:00')
+    
+    print(f"目标起床时间: {current_target}")
+    print(f"实际起床时间: {current_actual}")
+    print()
+    
+    # 更新数据
+    try:
+        target_time = input(f"输入目标起床时间 HH:MM (当前: {current_target}): ").strip()
+        if target_time:
+            # 验证时间格式
+            datetime.strptime(target_time, '%H:%M')
+            wake_config['target'] = target_time
+        
+        actual_time = input(f"输入实际起床时间 HH:MM:SS (当前: {current_actual}): ").strip()
+        if actual_time:
+            # 验证时间格式
+            datetime.strptime(actual_time, '%H:%M:%S')
+            wake_config['actual'] = actual_time
+        
+        config['wake_time'] = wake_config
+        save_config(config)
+        
+    except ValueError as e:
+        print(f"❌ 时间格式错误: {e}")
+        print("请使用 HH:MM 或 HH:MM:SS 格式，例如: 06:30 或 06:30:45")
+    except KeyboardInterrupt:
+        print("\n操作已取消")
+
 def show_current_config():
     """显示当前配置"""
     config = load_config()
@@ -110,18 +149,21 @@ def main():
         print("=" * 30)
         print("1. 更新跑步数据")
         print("2. 更新 GitHub 用户名")
-        print("3. 显示当前配置")
-        print("4. 退出")
+        print("3. 更新起床时间")
+        print("4. 显示当前配置")
+        print("5. 退出")
         
-        choice = input("\n请选择操作 (1-4): ").strip()
+        choice = input("\n请选择操作 (1-5): ").strip()
         
         if choice == '1':
             update_running_data()
         elif choice == '2':
             update_github_username()
         elif choice == '3':
-            show_current_config()
+            update_wake_time()
         elif choice == '4':
+            show_current_config()
+        elif choice == '5':
             print("👋 再见！")
             break
         else:

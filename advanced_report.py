@@ -28,25 +28,13 @@ class DailyReportGenerator:
         except FileNotFoundError:
             # 如果配置文件不存在，返回默认配置
             return {
-                "running": {
-                    "month_distance": 0,
-                    "year_distance": 0,
-                    "last_run_date": "2025-01-01",
-                    "weekly_goal": 20,
-                    "monthly_goal": 80,
-                    "yearly_goal": 1000
-                },
                 "github": {
                     "username": GH_USERNAME
-                },
-                "wake_time": {
-                    "target": "06:00",
-                    "actual": "06:00:00"
                 }
             }
         
-    def get_time_stats(self):
-        """获取时间统计信息"""
+    def get_date_info(self):
+        """获取日期相关信息：日期、星期、节气、农历"""
         day_of_year = (self.current_time - self.start_of_year).days + 1
         total_days = 366 if self.current_time.year % 4 == 0 else 365
         progress_percent = (day_of_year / total_days) * 100
@@ -55,16 +43,90 @@ class DailyReportGenerator:
         filled_blocks = int(progress_percent / 5)
         progress_bar = "█" * filled_blocks + "░" * (20 - filled_blocks)
         
+        # 中文星期
+        weekdays = ['一', '二', '三', '四', '五', '六', '日']
+        weekday = weekdays[self.current_time.weekday()]
+        
+        # 获取节气（简化版本）
+        solar_term = self.get_solar_term()
+        
+        # 获取农历（简化版本）
+        lunar_info = self.get_lunar_date()
+        
         return {
-            'wake_time': self.current_time.strftime('%Y-%m-%d %H:%M:%S'),
+            'date': self.current_time.strftime('%Y年%m月%d日'),
+            'weekday': f'星期{weekday}',
             'day_of_year': day_of_year,
             'total_days': total_days,
             'progress_percent': round(progress_percent, 1),
-            'progress_bar': progress_bar
+            'progress_bar': progress_bar,
+            'solar_term': solar_term,
+            'lunar_date': lunar_info
         }
     
-    async def get_github_activity(self):
-        """获取 GitHub 活动信息"""
+    def get_solar_term(self):
+        """获取当前节气（简化版本）"""
+        # 简化的节气计算，实际应用建议使用专业的农历库
+        month = self.current_time.month
+        day = self.current_time.day
+        
+        solar_terms = {
+            (1, 5, 6): "小寒", (1, 20, 21): "大寒",
+            (2, 3, 5): "立春", (2, 18, 20): "雨水",
+            (3, 5, 6): "惊蛰", (3, 20, 21): "春分",
+            (4, 4, 6): "清明", (4, 19, 21): "谷雨",
+            (5, 5, 6): "立夏", (5, 20, 22): "小满",
+            (6, 5, 7): "芒种", (6, 21, 22): "夏至",
+            (7, 6, 8): "小暑", (7, 22, 24): "大暑",
+            (8, 7, 9): "立秋", (8, 22, 24): "处暑",
+            (9, 7, 9): "白露", (9, 22, 24): "秋分",
+            (10, 8, 9): "寒露", (10, 23, 24): "霜降",
+            (11, 7, 8): "立冬", (11, 22, 23): "小雪",
+            (12, 6, 8): "大雪", (12, 21, 23): "冬至"
+        }
+        
+        for (m, start, end), term in solar_terms.items():
+            if month == m and start <= day <= end:
+                return term
+        return ""
+    
+    def get_lunar_date(self):
+        """获取农历日期（简化版本）"""
+        try:
+            # 这里使用一个简化的农历API或者库
+            # 实际应用中建议使用专业的农历转换库如 lunardate
+            response = requests.get(
+                f"https://api.xiaobaibk.com/api/lunar/?date={self.current_time.strftime('%Y-%m-%d')}",
+                timeout=3
+            )
+            if response.status_code == 200:
+                data = response.json()
+                if data.get('code') == 200:
+                    lunar_data = data.get('data', {})
+                    return f"{lunar_data.get('lunar_year', '')} {lunar_data.get('lunar_month', '')}{lunar_data.get('lunar_day', '')}"
+        except:
+            pass
+        
+        # 如果API失败，返回简化的农历信息
+        lunar_months = ['正月', '二月', '三月', '四月', '五月', '六月', 
+                       '七月', '八月', '九月', '十月', '冬月', '腊月']
+        lunar_days = ['初一', '初二', '初三', '初四', '初五', '初六', '初七', '初八', '初九', '初十',
+                     '十一', '十二', '十三', '十四', '十五', '十六', '十七', '十八', '十九', '二十',
+                     '廿一', '廿二', '廿三', '廿四', '廿五', '廿六', '廿七', '廿八', '廿九', '三十']
+        
+        # 简单估算（不准确，仅为示例）
+        month_approx = ((self.current_time.month - 1) % 12)
+        day_approx = min(self.current_time.day - 1, 29)
+        
+        return f"{lunar_months[month_approx]}{lunar_days[day_approx]}"
+    
+    async def get_github_activity(self, days_back=1):
+        """获取 GitHub 活动信息
+        
+        Args:
+            days_back (int): 获取几天前的活动，默认1（昨天）
+                           0 = 今天, 1 = 昨天, 2 = 前天
+        """
         username = GH_USERNAME or self.config.get('github', {}).get('username', '')
         
         if not username:
@@ -84,15 +146,15 @@ class DailyReportGenerator:
                 return {"prs": [], "issues": [], "commits": [], "error": True}
             
             events = response.json()
-            yesterday = self.current_time - timedelta(days=1)
+            target_date = self.current_time - timedelta(days=days_back)
             
-            github_activity = {"prs": [], "issues": [], "commits": []}
+            github_activity = {"prs": [], "issues": [], "commits": [], "date": target_date.strftime('%Y-%m-%d')}
             
             for event in events[:30]:  # 检查最近30个事件
                 event_date = datetime.strptime(event['created_at'], '%Y-%m-%dT%H:%M:%SZ')
                 
-                # 检查是否是昨天的活动
-                if event_date.date() == yesterday.date():
+                # 检查是否是目标日期的活动
+                if event_date.date() == target_date.date():
                     if event['type'] == 'PullRequestEvent' and event['payload']['action'] in ['opened', 'closed']:
                         pr_info = {
                             'action': '创建了' if event['payload']['action'] == 'opened' else '合并了',
@@ -126,22 +188,7 @@ class DailyReportGenerator:
             print(f"获取 GitHub 活动失败: {e}")
             return {"prs": [], "issues": [], "commits": [], "error": True}
     
-    def get_running_stats(self):
-        """获取跑步统计"""
-        running_config = self.config.get('running', {})
-        
-        # 检查昨天是否跑步
-        last_run = running_config.get('last_run_date', '2025-01-01')
-        yesterday = (self.current_time - timedelta(days=1)).strftime('%Y-%m-%d')
-        ran_yesterday = last_run == yesterday
-        
-        return {
-            'yesterday': ran_yesterday,
-            'month_distance': running_config.get('month_distance', 0),
-            'year_distance': running_config.get('year_distance', 0),
-            'monthly_goal': running_config.get('monthly_goal', 80),
-            'yearly_goal': running_config.get('yearly_goal', 1000)
-        }
+
     
     def get_daily_poem(self):
         """获取每日诗词"""
@@ -163,72 +210,66 @@ class DailyReportGenerator:
         ]
         return random.choice(poems)
     
-    async def generate_report(self):
-        """生成完整的日报"""
-        time_stats = self.get_time_stats()
-        github_activity = await self.get_github_activity()
-        running_stats = self.get_running_stats()
+    async def generate_report(self, github_days_back=1):
+        """生成简洁日报"""
+        date_info = self.get_date_info()
+        github_activity = await self.get_github_activity(github_days_back)
         poem = self.get_daily_poem()
-        
+
         # 构建报告文本
         report = f"<b>📅 每日报告</b>\n\n"
-        
-        # 时间信息
-        report += f"今天的起床时间是--{time_stats['wake_time']}。\n\n"
-        report += "起床啦。\n\n"
-        report += f"今天是今年的第 {time_stats['day_of_year']} 天。\n\n"
-        report += f"<code>{time_stats['progress_bar']}</code> {time_stats['progress_percent']}% ({time_stats['day_of_year']}/{time_stats['total_days']})\n\n"
-        
+        report += f"📆 <b>{date_info['date']} {date_info['weekday']}</b>\n"
+        if date_info['solar_term']:
+            report += f"🌸 节气：{date_info['solar_term']}\n"
+        report += f"🏮 农历：{date_info['lunar_date']}\n\n"
+        report += f"今天是今年的第 <b>{date_info['day_of_year']}</b> 天\n"
+        report += f"<code>{date_info['progress_bar']}</code> {date_info['progress_percent']}% ({date_info['day_of_year']}/{date_info['total_days']})\n\n"
+
         # GitHub 活动
-        report += "<b>GitHub：</b>\n\n"
+        if github_days_back == 0:
+            date_text = "今天"
+        elif github_days_back == 1:
+            date_text = "昨天"
+        else:
+            date_text = f"{github_days_back}天前"
+        report += f"<b>💻 GitHub ({date_text})：</b>\n"
         has_activity = False
-        
         for pr in github_activity.get('prs', []):
             report += f"• {pr['action']} PR: {pr['title']} ({pr['repo']})\n"
             has_activity = True
-        
         for issue in github_activity.get('issues', []):
             report += f"• {issue['action']} Issue: {issue['title']} ({issue['repo']})\n"
             has_activity = True
-        
         for commit in github_activity.get('commits', []):
             report += f"• 提交了: {commit['message']} ({commit['repo']})\n"
             has_activity = True
-        
         if not has_activity:
             if github_activity.get('error'):
                 report += "• GitHub 数据获取失败\n"
             else:
-                report += "• 昨天没有 GitHub 活动\n"
-        
+                report += f"• {date_text}没有 GitHub 活动\n"
         report += "\n"
-        
-        # 跑步统计
-        report += "<b>Run：</b>\n\n"
-        if running_stats['yesterday']:
-            report += "• 昨天跑了步 ✅\n"
-        else:
-            report += "• 昨天没跑\n"
-        
-        report += f"• 本月跑了 {running_stats['month_distance']} 公里\n"
-        report += f"• 今年跑了 {running_stats['year_distance']} 公里\n\n"
-        
+
         # 每日诗词
-        report += "<b>今天的一句诗:</b>\n\n"
+        report += "<b>📜 今天的一句诗:</b>\n"
         report += f"<i>{poem['content']}</i>\n"
         if poem.get('author') and poem.get('title'):
-            report += f"—— {poem['author']}《{poem['title']}》"
-        
+            report += f"—— {poem['author']}《{poem['title']}》\n"
+
         return report
 
-async def send_daily_report():
-    """发送日报"""
+async def send_daily_report(github_days_back=1):
+    """发送日报
+    
+    Args:
+        github_days_back (int): 获取几天前的 GitHub 活动，默认1（昨天）
+    """
     bot = Bot(token=BOT_TOKEN)
     
     try:
         # 生成日报
         generator = DailyReportGenerator()
-        report = await generator.generate_report()
+        report = await generator.generate_report(github_days_back)
         
         # 发送消息
         await bot.send_message(
@@ -257,9 +298,28 @@ async def push_poem():
 if __name__ == '__main__':
     import sys
     
-    if len(sys.argv) > 1 and sys.argv[1] == 'simple':
-        # python advanced_report.py simple - 发送简单版本
-        asyncio.run(push_poem())
+    if len(sys.argv) > 1:
+        if sys.argv[1] == 'simple':
+            # python advanced_report.py simple - 发送简单版本
+            asyncio.run(push_poem())
+        elif sys.argv[1] == 'today':
+            # python advanced_report.py today - 显示今天的 GitHub 活动
+            asyncio.run(send_daily_report(github_days_back=0))
+        elif sys.argv[1] == 'yesterday':
+            # python advanced_report.py yesterday - 显示昨天的 GitHub 活动
+            asyncio.run(send_daily_report(github_days_back=1))
+        elif sys.argv[1].isdigit():
+            # python advanced_report.py 2 - 显示2天前的 GitHub 活动
+            days = int(sys.argv[1])
+            asyncio.run(send_daily_report(github_days_back=days))
+        else:
+            print("❌ 无效参数")
+            print("用法:")
+            print("  python advanced_report.py        - 默认日报（显示昨天活动）")
+            print("  python advanced_report.py simple - 简单版本")
+            print("  python advanced_report.py today  - 显示今天的活动")
+            print("  python advanced_report.py yesterday - 显示昨天的活动")
+            print("  python advanced_report.py 2     - 显示2天前的活动")
     else:
-        # python advanced_report.py - 发送完整日报
+        # python advanced_report.py - 发送完整日报（默认显示昨天活动）
         asyncio.run(send_daily_report())

@@ -1,13 +1,15 @@
-# Telegram 每日古诗推送机器人
+# Telegram 每日报告机器人
 
-这是一个使用 GitHub Actions 每天自动推送古诗词到 Telegram 群组或频道的机器人。
+这是一个功能丰富的每日报告机器人，使用 GitHub Actions 自动推送到 Telegram。包含时间统计、GitHub 活动、运动数据和每日诗词。
 
-## 功能特点
+## 🌟 功能特点
 
-- 每天自动推送精选古诗词
-- 包含诗词解析和作者信息
-- 使用 GitHub Actions 实现自动化
-- 支持手动触发推送
+- **📅 时间统计**: 年度进度条和天数统计
+- **📊 GitHub 活动**: 自动获取 PR、Issue 和提交记录
+- **🏃 运动统计**: 跑步距离和目标跟踪
+- **📜 每日诗词**: 精选古诗词推送
+- **🤖 自动化**: GitHub Actions 定时执行
+- **⚙️ 可配置**: 支持自定义数据和设置
 
 ## 设置步骤
 
@@ -43,6 +45,8 @@ python get_chat_id.py
 2. 点击 `New repository secret` 添加：
    - `BOT_TOKEN`: 你的 Telegram Bot Token
    - `CHAT_ID`: 目标群组或频道的 Chat ID
+   - `GITHUB_TOKEN`: 你的 GitHub Personal Access Token (可选，用于获取活动数据)
+   - `GITHUB_USERNAME`: 你的 GitHub 用户名
 
 ### 4. 自定义推送时间
 
@@ -74,29 +78,129 @@ Cron 表达式格式：`分 时 日 月 周`
    python push.py
    ```
 
-## 文件说明
+## 📁 文件说明
 
-- `push.py` - 主推送脚本
-- `get_chat_id.py` - 获取 Chat ID 的辅助脚本
-- `requirements.txt` - Python 依赖包
-- `.github/workflows/daily-push.yml` - GitHub Actions 工作流配置
+- `advanced_report.py` - 🚀 高级日报生成器（主脚本）
+- `push.py` - 📜 简单古诗推送脚本（向后兼容）
+- `config.json` - ⚙️ 配置文件（运动数据、GitHub 用户名等）
+- `update_config.py` - 🔧 配置更新工具
+- `get_chat_id.py` - 🔍 获取 Chat ID 的辅助脚本
+- `requirements.txt` - 📦 Python 依赖包
+- `.github/workflows/daily-push.yml` - 🤖 GitHub Actions 工作流配置
 
-## 自定义古诗内容
+## 🛠️ 使用方法
 
-你可以在 `push.py` 中的 `get_daily_poem()` 函数中：
+### 更新运动数据
 
-1. 添加更多古诗到 `poems` 列表
-2. 或者调用外部 API 获取古诗数据
-3. 或者从文件中读取古诗数据
+使用配置管理工具更新跑步数据：
 
-## 故障排除
+```bash
+python update_config.py
+```
+
+或者直接编辑 `config.json` 文件：
+
+```json
+{
+  "running": {
+    "month_distance": 53.7,
+    "year_distance": 967.81,
+    "last_run_date": "2025-10-06"
+  }
+}
+```
+
+### 本地测试
+
+```bash
+# 安装依赖
+pip install -r requirements.txt
+
+# 发送完整日报
+python advanced_report.py
+
+# 发送简单古诗
+python advanced_report.py simple
+```
+
+### GitHub Token 设置
+
+要获取 GitHub 活动数据，需要创建 Personal Access Token：
+
+1. 访问 GitHub → Settings → Developer settings → Personal access tokens
+2. 创建新的 token，选择 `public_repo` 权限
+3. 将 token 添加到 GitHub Secrets 中的 `GITHUB_TOKEN`
+
+## 📊 日报内容示例
+
+```
+📅 每日报告
+
+今天的起床时间是--2025-10-07 05:00:43。
+
+起床啦。
+
+今天是今年的第 280 天。
+
+██████████████░░░░░░ 76.7% (280/365)
+
+GitHub：
+
+• 创建了 PR: Add new feature (username/repo)
+• 提交了: Fix bug in main.py (username/repo)
+
+Run：
+
+• 昨天没跑
+• 本月跑了 53.7 公里
+• 今年跑了 967.81 公里
+
+今天的一句诗:
+
+携壶酌流霞，搴菊泛寒荣。
+—— 李白《九日龙山饮》
+```
+
+## 🎨 自定义功能
+
+### 添加更多诗词
+
+编辑 `advanced_report.py` 中的 `get_daily_poem()` 函数：
+
+```python
+poems = [
+    {"content": "你的诗句", "author": "作者", "title": "诗名"},
+    # 添加更多...
+]
+```
+
+### 接入运动 API
+
+你可以修改 `get_running_stats()` 函数来接入：
+
+- Strava API
+- Nike Run Club API
+- 咕咚 API
+- 其他运动应用 API
+
+### 自定义 GitHub 活动
+
+修改 `get_github_activity()` 函数来：
+
+- 过滤特定类型的活动
+- 添加更多活动类型
+- 自定义显示格式
+
+## 🐛 故障排除
 
 1. **推送失败**：检查 Bot Token 和 Chat ID 是否正确
-2. **权限错误**：确保机器人已被添加到目标群组并有发送消息权限
-3. **时区问题**：GitHub Actions 使用 UTC 时间，需要换算到你的本地时间
+2. **GitHub 数据获取失败**：确认 GITHUB_TOKEN 和 GITHUB_USERNAME 设置正确
+3. **配置文件错误**：使用 `update_config.py` 重新生成配置
+4. **时区问题**：GitHub Actions 使用 UTC 时间，需要换算
 
-## 注意事项
+## ⚠️ 注意事项
 
-- GitHub Actions 免费账户每月有使用限制
-- 建议不要设置过于频繁的推送时间
-- 定期检查 Actions 运行状态
+- GitHub Actions 免费账户每月有 2000 分钟限制
+- GitHub API 有速率限制，建议设置 GITHUB_TOKEN
+- 定期更新运动数据以保持准确性
+- 保护好你的 Bot Token 和其他敏感信息

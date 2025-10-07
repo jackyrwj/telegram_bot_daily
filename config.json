@@ -1,0 +1,17 @@
+{
+  "running": {
+    "month_distance": 53.7,
+    "year_distance": 967.81,
+    "last_run_date": "2025-10-05",
+    "weekly_goal": 20,
+    "monthly_goal": 80,
+    "yearly_goal": 1200
+  },
+  "github": {
+    "username": "jackyrwj"
+  },
+  "wake_time": {
+    "target": "05:00",
+    "actual": "05:00:43"
+  }
+}
